@@ -1,6 +1,7 @@
 import pyglet
 import math
 import copy
+import itertools
 
 from pyglet.gl import *
 from pyglet.window import key
@@ -13,7 +14,7 @@ import ArcBall
 
 
 class World(pyglet.window.Window):
-  def __init__(self):
+  def __init__(self, cube):
     width  = 1280
     height =  960
     
@@ -21,6 +22,8 @@ class World(pyglet.window.Window):
                 depth_size=16, double_buffer=True,)
     super(World, self).__init__(width, height, resizable=True, config=config)
 
+    self.cube   = cube
+    self.e      = 1.0
     self.z      = 16.0
     self.width  = width
     self.heigth = height
@@ -65,44 +68,56 @@ class World(pyglet.window.Window):
 
   def cubeVertex(self):
     glBegin(GL_QUADS)
-    glVertex3f( 1.0, 1.0,-1.0)
-    glVertex3f(-1.0, 1.0,-1.0)
-    glVertex3f(-1.0, 1.0, 1.0)
-    glVertex3f( 1.0, 1.0, 1.0)
+    glVertex3f( 0.5, 0.5,-0.5)
+    glVertex3f(-0.5, 0.5,-0.5)
+    glVertex3f(-0.5, 0.5, 0.5)
+    glVertex3f( 0.5, 0.5, 0.5)
 
-    glVertex3f( 1.0,-1.0, 1.0)
-    glVertex3f(-1.0,-1.0, 1.0)
-    glVertex3f(-1.0,-1.0,-1.0)
-    glVertex3f( 1.0,-1.0,-1.0)
+    glVertex3f( 0.5,-0.5, 0.5)
+    glVertex3f(-0.5,-0.5, 0.5)
+    glVertex3f(-0.5,-0.5,-0.5)
+    glVertex3f( 0.5,-0.5,-0.5)
 
-    glVertex3f( 1.0, 1.0, 1.0)
-    glVertex3f(-1.0, 1.0, 1.0)
-    glVertex3f(-1.0,-1.0, 1.0)
-    glVertex3f( 1.0,-1.0, 1.0)
+    glVertex3f( 0.5, 0.5, 0.5)
+    glVertex3f(-0.5, 0.5, 0.5)
+    glVertex3f(-0.5,-0.5, 0.5)
+    glVertex3f( 0.5,-0.5, 0.5)
 
-    glVertex3f( 1.0,-1.0,-1.0)
-    glVertex3f(-1.0,-1.0,-1.0)
-    glVertex3f(-1.0, 1.0,-1.0)
-    glVertex3f( 1.0, 1.0,-1.0)
+    glVertex3f( 0.5,-0.5,-0.5)
+    glVertex3f(-0.5,-0.5,-0.5)
+    glVertex3f(-0.5, 0.5,-0.5)
+    glVertex3f( 0.5, 0.5,-0.5)
 
-    glVertex3f(-1.0, 1.0, 1.0)
-    glVertex3f(-1.0, 1.0,-1.0)
-    glVertex3f(-1.0,-1.0,-1.0)
-    glVertex3f(-1.0,-1.0, 1.0)
+    glVertex3f(-0.5, 0.5, 0.5)
+    glVertex3f(-0.5, 0.5,-0.5)
+    glVertex3f(-0.5,-0.5,-0.5)
+    glVertex3f(-0.5,-0.5, 0.5)
 
-    glVertex3f( 1.0, 1.0,-1.0)
-    glVertex3f( 1.0, 1.0, 1.0)
-    glVertex3f( 1.0,-1.0, 1.0)
-    glVertex3f( 1.0,-1.0,-1.0)
+    glVertex3f( 0.5, 0.5,-0.5)
+    glVertex3f( 0.5, 0.5, 0.5)
+    glVertex3f( 0.5,-0.5, 0.5)
+    glVertex3f( 0.5,-0.5,-0.5)
     glEnd()
 
-  def placeCube(self,x,y,z):
+  def scaleS(self,x,y,z):
+    r = math.sqrt(x**2 + y**2 + z**2)
+    t = math.acos(z/r) if r else 0
+    p = math.atan2(y,x)
+
+    r = r * (self.e**r)
+
+    return (r * math.sin(t) * math.cos(p), r * math.sin(t) * math.sin(p), r * math.cos(t) )
+
+  def scaleC(self,x,y,z):
+    return (i * self.e for i in (x,y,z))
+
+  def placeCube(self,c,x,y,z):
     glPushMatrix()
     glTranslatef(x,y,z)
-    glColor3f(0.5,  0.0,  0.0 );
+    glColor3f(*(min(1.0,0.875 * i) for i in c))
     glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
     self.cubeVertex()
-    glColor3f(1.0, 0, 0)
+    glColor3f(*c);
     glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
     self.cubeVertex()
     glPopMatrix()
@@ -114,8 +129,10 @@ class World(pyglet.window.Window):
     glLineWidth( 2.0 + 8.0/max(self.z,0.1))
     glPushMatrix()
     glMultMatrixf(self.trans)
-    self.placeCube(0,0,0)
-    self.placeCube(3,0,0)
+    for k,v in self.cube.items():
+      color = [i/255.0 for i in k]
+      for c in v:
+        self.placeCube(color, *self.scaleC(*c))
     glPopMatrix()
 
   def on_key_press(self, symbol, modifiers):
@@ -124,6 +141,7 @@ class World(pyglet.window.Window):
 
   def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
     self.z += scroll_y/4.0
+    self.e = max(1.0, self.e + scroll_x/64.0)
 
   def on_mouse_press(self, x, y, button, modifiers):
     self.lastR = copy.copy(self.thisR)
@@ -142,6 +160,8 @@ class World(pyglet.window.Window):
     
 
 if __name__ == "__main__":
-  window = World()
+  cube = { (255,0,0) : list(itertools.product( [-2,-1,0,1,2], repeat=3 )) }  
+
+  window = World(cube)
   pyglet.app.run()
 
