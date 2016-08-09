@@ -171,9 +171,6 @@ def Matrix3fSetIdentity ():
 def Matrix3fMulMatrix3f (matrix_a, matrix_b):
 	return sumDot( matrix_a, matrix_b )
 
-
-
-
 def Matrix4fSVD (NewObj):
 	X = 0
 	Y = 1
@@ -231,10 +228,6 @@ def Matrix3fSetRotationFromQuat4f (q1):
 	NewObj [X][Z] =       xz - wy; 		NewObj [Y][Z] = yz + wx;          	NewObj [Z][Z] = 1.0 - (xx + yy)
 
 	return NewObj
-
-
-
-
 
 
 def unit_test_ArcBall_module ():

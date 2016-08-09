@@ -2,6 +2,8 @@ import pyglet
 import math
 import copy
 import itertools
+import sys
+import ast
 
 from pyglet.gl import *
 from pyglet.window import key
@@ -47,7 +49,7 @@ class World(pyglet.window.Window):
     self.arcball.setBounds(w,h)
   
   def InitGL(self,Width, Height):
-    glClearColor(0.0, 0.0, 0.0, 0,0)
+    glClearColor(0.325, 0.325, 0.325, 0,0)
     glClearDepth(1.0)	   
     glDepthFunc(GL_LESS)	   
     glEnable(GL_DEPTH_TEST)	   
@@ -159,8 +161,30 @@ class World(pyglet.window.Window):
     self.trans = ArcBall.Matrix4fSetRotationFromMatrix3f(self.trans, self.thisR)
     
 
+def to3d(sigma, pixel):
+  f = {k:v for k,v in enumerate(sigma)}
+  return [[p[f[i]] if f[i] < 2 else 0 for i in range(3)] for p in pixel]
+
+digit = {
+  'zero' : ((252,150,167), [[-2,-2],[-2,-1],[-2,0],[-2,1],[-2,2],[-1,-2],[-1,2],[0,-2],[0,-1],[0,0],[0,1],[0,2]]),
+  'one'  : ((  1,120, 80), [[-2,-2],[-1,-2],[0,-2],[-1,-1],[-1,0],[-1,1],[-1,2],[-2,2]]),
+  'two'  : ((178,  0,111), [[-2,2],[-1,2],[0,2],[0,1],[0,0],[-1,0],[-2,0],[-2,-1],[-2,-2],[-1,-2],[0,-2]]),
+  'three': ((  1, 45,169), [[-2,2],[-1,2],[0,2],[0,1],[-2,0],[-1,0],[0,0],[0,-1],[-2,-2],[-1,-2],[0,-2]]),
+  'four' : ((  2,148,201), [[-2,2],[0,2],[-2,1],[0,1],[-2,0],[-1,0],[0,0],[0,-1],[0,-2]]),
+  'five' : ((255,210, 69), [[-2,2],[-1,2],[0,2],[-2,1],[-2,0],[-1,0],[0,0],[0,-1],[-2,-2],[-1,-2],[0,-2]]),
+  'six'  : ((255,130, 19), [[-2,2],[-1,2],[0,2],[-2,1],[-2,0],[-1,0],[0,0],[-2,-1],[0,-1],[-2,-2],[-1,-2],[0,-2]]),
+  'seven': ((  7,  8, 11), [[-2,2],[-1,2],[0,2],[-2,1],[0,1],[0,0],[0,-1],[0,-2]]),
+  'eight': ((149, 80,177), [[-2,2],[-1,2],[0,2],[-2,1],[0,1],[-2,0],[-1,0],[0,0],[-2,-1],[0,-1],[-2,-2],[-1,-2],[0,-2]]),
+  'nine' : ((213, 20, 40), [[-2,2],[-1,2],[0,2],[-2,1],[0,1],[-2,0],[-1,0],[0,0],[0,-1],[-2,-2],[-1,-2],[0,-2]])
+}
+
 if __name__ == "__main__":
-  cube = { (255,0,0) : list(itertools.product( [-2,-1,0,1,2], repeat=3 )) }  
+  if len(sys.argv) == 2:
+    with open(sys.argv[1]) as io:
+      cube = ast.literal_eval(''.join(io.readlines()))
+    pass
+  else:
+    cube = { digit[n][0] : to3d([0,1,2],digit[n][1]) for n in ('six',) }
 
   window = World(cube)
   pyglet.app.run()
