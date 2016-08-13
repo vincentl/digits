@@ -1,11 +1,34 @@
-# Inspired by NeHe tutorials in https://pypi.python.org/packages/source/P/PyOpenGL-Demo/PyOpenGL-Demo-3.0.1b1.tar.gz
+# The MIT License (MIT)
+# Copyright (c) 2016 Vincent Lucarelli
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# This code was heavily inspired by NeHe tutorials in 
+# https://pypi.python.org/packages/source/P/PyOpenGL-Demo/PyOpenGL-Demo-3.0.1b1.tar.gz
  
-import pyglet
-import math
+import argparse
+import ast
 import copy
 import itertools
+import math
+import pyglet
 import sys
-import ast
 
 from pyglet.gl import *
 from pyglet.window import key
@@ -17,7 +40,7 @@ from OpenGL.GLU import *
 import ArcBall
 
 class World(pyglet.window.Window):
-  def __init__(self, cube):
+  def __init__(self, cubes, index, kind):
     width  = 1280
     height =  960
     
@@ -25,7 +48,10 @@ class World(pyglet.window.Window):
                 depth_size=16, double_buffer=True,)
     super(World, self).__init__(width, height, resizable=True, config=config)
 
-    self.cube   = cube
+    self.cubes  = cubes
+    self.index  = index % len(cubes)
+    self.kind   = kind
+    self.shift  = False
     self.e      = 1.0
     self.z      = 16.0
     self.width  = width
@@ -34,6 +60,7 @@ class World(pyglet.window.Window):
     self.thisR  = ArcBall.Matrix3fT()
     self.trans  = ArcBall.Matrix4fT()
     self.setup()
+    self.set_caption('{} {}'.format(self.kind, self.index))
   
   def setup(self):
     self.InitGL(self.width, self.height)
@@ -106,7 +133,6 @@ class World(pyglet.window.Window):
     r = math.sqrt(x**2 + y**2 + z**2)
     t = math.acos(z/r) if r else 0
     p = math.atan2(y,x)
-
     r = r * (self.e**r)
 
     return (r * math.sin(t) * math.cos(p), r * math.sin(t) * math.sin(p), r * math.cos(t) )
@@ -132,7 +158,7 @@ class World(pyglet.window.Window):
     glLineWidth( 2.0 + 8.0/max(self.z,0.1))
     glPushMatrix()
     glMultMatrixf(self.trans)
-    for k,v in self.cube.items():
+    for k,v in self.cubes[self.index].items():
       color = [i/255.0 for i in k]
       for c in v:
         self.placeCube(color, *self.scaleC(*c))
@@ -141,10 +167,26 @@ class World(pyglet.window.Window):
   def on_key_press(self, symbol, modifiers):
     if symbol == key.ESCAPE:
       self.dispatch_event('on_close')
+    elif symbol == key.N:
+      self.index = (self.index + 1) % len(self.cubes)
+    elif symbol == key.P:
+      self.index = (self.index - 1) % len(self.cubes)
+    elif symbol in (key.RSHIFT, key.LSHIFT):
+      self.shift = True
+    self.set_caption('{} {}'.format(self.kind, self.index))
+
+  def on_key_release(self, symbol, modifiers):
+    if symbol in (key.RSHIFT, key.LSHIFT):
+      self.shift = False
+    self.set_caption('{} {}'.format(self.kind, self.index))
 
   def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
-    self.z += scroll_y/4.0
-    self.e = max(1.0, self.e + scroll_x/64.0)
+    if self.shift:
+      self.index = (self.index - scroll_y) % len(self.cubes)
+      self.set_caption('{} {}'.format(self.kind, self.index))
+    else:
+      self.z += scroll_y/4.0
+      self.e = max(1.0, self.e + scroll_x/64.0)
 
   def on_mouse_press(self, x, y, button, modifiers):
     self.lastR = copy.copy(self.thisR)
@@ -180,13 +222,22 @@ digit = {
 }
 
 if __name__ == "__main__":
-  if len(sys.argv) == 2:
-    with open(sys.argv[1]) as io:
-      cube = ast.literal_eval(''.join(io.readlines()))
-      cube = { k if type(k) is tuple else digit[k][0] : v for k,v in cube.items() }
-  else:
-    cube = { digit[n][0] : to3d([0,1,2],digit[n][1]) for n in ('six',) }
+  parser = argparse.ArgumentParser(description='Voxel Viewer')
+  parser.add_argument('--index', type=int, help='initial solution to view', default=0)
+  parser.add_argument('path', metavar='solutions', type=str, nargs='?', help='path to solutions file')
+  option = parser.parse_args()
 
-  window = World(cube)
+  if option.path:
+    with open(option.path) as io:
+      cubes = ast.literal_eval(io.read())
+      cubes = [ {k if type(k) is tuple else digit[k][0] : v for k,v in cube.items()} for cube in cubes ]
+  else:
+    name  = [ 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine' ]
+    cubes = [ {digit[n][0] : to3d([0,1,2],digit[n][1])} for n in name ]
+
+  kind = 'solutions' if option.path else 'digits' 
+  print("Loaded {} {}".format(len(cubes), kind))
+
+  window = World(cubes, option.index, kind)
   pyglet.app.run()
 
