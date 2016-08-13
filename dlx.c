@@ -1,11 +1,41 @@
-#include <stdio.h>
+/*
+ * The MIT License (MIT)
+ * Copyright (c) 2016 Vincent Lucarelli
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the "Software"), to deal in
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do
+ * so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
 #include <limits.h>
+#include <regex.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <regex.h>
 
-#include "dlx.h"
+typedef struct solution_t 
+{
+  size_t count;
+  int    row[];
+} solution_t;
 
+typedef struct dlx_t dlx_t;
 
 struct dlx_t
 {
@@ -18,6 +48,13 @@ struct dlx_t
   int    I;
   char  *name;
 };
+
+void dlx_create(dlx_t **h);
+void dlx_destroy(dlx_t *h);
+void dlx_info(dlx_t *h, FILE *io);
+void dlx_add_column(dlx_t *h, char *name, bool primary);
+int  dlx_add_row(dlx_t *h, size_t count, int column[]);
+void dlx_solve_by_recursion(dlx_t *h);
 
 void dlx_create(dlx_t **_h)
 {
@@ -34,9 +71,9 @@ void dlx_create(dlx_t **_h)
 
 void dlx_info(dlx_t *h, FILE *io)
 {
-  printf( "%d x %d matrix\n", h->S, h->I);
+  fprintf(io, "%d x %d matrix\n", h->S, h->I);
   for( dlx_t *a = h->R; a != h; a = a->R )
-    printf( " %ccolumn %3d/weight %4d : %s\n", a->S < 0 ? '-' : '+', a->I, a->S >0 ? a->S : -1, a->name ? a->name : "");
+    fprintf(io, " %ccolumn %3d/weight %4d : %s\n", a->S < 0 ? '-' : '+', a->I, a->S >0 ? a->S : -1, a->name ? a->name : "");
 }
 
 void dlx_destroy(dlx_t *h)
@@ -165,12 +202,12 @@ void recurse(dlx_t *h, dlx_t **o, int k)
     for( int i = 0; i < k; ++i )
     {
       dlx_t *a = o[i];
-      printf( "  %s : [", a->C->name);
+      printf( "  '%s' : [", a->C->name);
       for( a = a->R; a != o[i]; a = a->R )
         printf( "%s,", a->C->name);
       printf( "],\n" );
     }
-    printf( "}\n" );
+    printf( "},\n" );
 
     return;
   }
@@ -299,7 +336,6 @@ int parse_input(dlx_t *h, const char *path)
   return rc;
 }
 
-
 int main(int argc, char *argv[])
 {
   dlx_t *h = NULL;
@@ -310,7 +346,9 @@ int main(int argc, char *argv[])
     fprintf( stderr, "**NOTE** skipped %d lines in %s\n", invalid, argv[1]);
   dlx_info(h, stderr);
 
+  printf( "[\n" );
   dlx_solve_by_recursion(h);
+  printf( "]\n" );
 
   dlx_destroy(h);
 
