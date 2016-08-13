@@ -1,3 +1,10 @@
+# Code copied from https://pypi.python.org/packages/source/P/PyOpenGL-Demo/PyOpenGL-Demo-3.0.1b1.tar.gz
+# License: BSD
+#
+# Removed debug print statements
+# Simplified import
+# Removed whitespace and some comments
+
 """
 ArcBall.py -- Math utilities, vector, matrix types and ArcBall quaternion rotation class
 

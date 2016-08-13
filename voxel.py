@@ -1,3 +1,5 @@
+# Inspired by NeHe tutorials in https://pypi.python.org/packages/source/P/PyOpenGL-Demo/PyOpenGL-Demo-3.0.1b1.tar.gz
+ 
 import pyglet
 import math
 import copy
@@ -13,7 +15,6 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
 import ArcBall
-
 
 class World(pyglet.window.Window):
   def __init__(self, cube):
@@ -49,7 +50,7 @@ class World(pyglet.window.Window):
     self.arcball.setBounds(w,h)
   
   def InitGL(self,Width, Height):
-    glClearColor(0.325, 0.325, 0.325, 0,0)
+    glClearColor(0.125, 0.125, 0.125, 0,0)
     glClearDepth(1.0)	   
     glDepthFunc(GL_LESS)	   
     glEnable(GL_DEPTH_TEST)	   
@@ -182,7 +183,7 @@ if __name__ == "__main__":
   if len(sys.argv) == 2:
     with open(sys.argv[1]) as io:
       cube = ast.literal_eval(''.join(io.readlines()))
-    pass
+      cube = { k if type(k) is tuple else digit[k][0] : v for k,v in cube.items() }
   else:
     cube = { digit[n][0] : to3d([0,1,2],digit[n][1]) for n in ('six',) }
 
